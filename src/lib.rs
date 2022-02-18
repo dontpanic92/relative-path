@@ -227,18 +227,32 @@
 #![deny(missing_docs)]
 #![deny(rustdoc::broken_intra_doc_links)]
 
-use std::borrow::{Borrow, Cow};
-use std::cmp;
+#![cfg_attr(not(feature = "std"), no_std)]
+
+extern crate alloc;
+
+use alloc::{borrow::{Cow, ToOwned}, boxed::Box, rc::Rc, sync::Arc};
+use core::borrow::Borrow;
+use core::cmp;
+use core::convert::{AsRef, From};
+
+#[cfg(feature = "std")]
 use std::error;
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::iter::FromIterator;
-use std::mem;
-use std::ops::{self, Deref};
+#[cfg(feature = "std")]
 use std::path;
-use std::rc::Rc;
-use std::str;
-use std::sync::Arc;
+
+
+use core::fmt;
+use core::hash::{Hash, Hasher};
+use core::iter::FromIterator;
+use core::mem;
+use core::ops::{self, Deref};
+use core::option::Option;
+
+#[cfg(not(feature = "std"))]
+use alloc::str;
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
 
 #[cfg(feature = "serde")]
 extern crate serde;
@@ -533,6 +547,7 @@ impl fmt::Display for FromPathError {
     }
 }
 
+#[cfg(feature = "std")]
 impl error::Error for FromPathError {}
 
 /// An owned, mutable relative path.
@@ -573,6 +588,7 @@ impl RelativePathBuf {
     ///     RelativePathBuf::from_path(Path::new("foo/bar"))
     /// );
     /// ```
+    #[cfg(feature = "std")]
     pub fn from_path<P: AsRef<path::Path>>(path: P) -> Result<RelativePathBuf, FromPathError> {
         use std::path::Component::*;
 
@@ -895,6 +911,7 @@ impl RelativePath {
     ///     assert_eq!(FromPathErrorKind::NonRelative, e.kind());
     /// }
     /// ```
+    #[cfg(feature = "std")]
     pub fn from_path<P: ?Sized + AsRef<path::Path>>(
         path: &P,
     ) -> Result<&RelativePath, FromPathError> {
@@ -1065,6 +1082,7 @@ impl RelativePath {
     ///
     /// [PathBuf]: https://doc.rust-lang.org/std/path/struct.PathBuf.html
     /// [PathBuf::push]: https://doc.rust-lang.org/std/path/struct.PathBuf.html#method.push
+    #[cfg(feature = "std")]
     pub fn to_path<P: AsRef<path::Path>>(&self, base: P) -> path::PathBuf {
         let mut p = base.as_ref().to_path_buf().into_os_string();
 
@@ -1154,6 +1172,7 @@ impl RelativePath {
     ///
     /// [PathBuf]: https://doc.rust-lang.org/std/path/struct.PathBuf.html
     /// [PathBuf::push]: https://doc.rust-lang.org/std/path/struct.PathBuf.html#method.push
+    #[cfg(feature = "std")]
     pub fn to_logical_path<P: AsRef<path::Path>>(&self, base: P) -> path::PathBuf {
         use self::Component::*;
 
@@ -1819,6 +1838,7 @@ impl serde::ser::Serialize for RelativePath {
     }
 }
 
+
 macro_rules! impl_cmp {
     ($lhs:ty, $rhs:ty) => {
         impl<'a, 'b> PartialEq<$rhs> for $lhs {
@@ -1898,8 +1918,11 @@ impl_cmp_str!(RelativePath, String);
 impl_cmp_str!(&'a RelativePath, str);
 impl_cmp_str!(&'a RelativePath, String);
 
+
 #[cfg(test)]
 mod tests {
+    use alloc::format;
+
     use super::*;
     use std::path::Path;
     use std::rc::Rc;
@@ -2437,7 +2460,7 @@ mod tests {
         use self::Component::*;
 
         assert_eq!(
-            vec![Normal("hello"), Normal("world")],
+            alloc::vec![Normal("hello"), Normal("world")],
             rp("/hello///world//").components().collect::<Vec<_>>()
         );
     }

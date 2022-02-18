@@ -15,7 +15,8 @@ readme = "README.md"
 edition = "2018"
 
 [features]
-default = []
+default = ["std"]
+std = []
 
 ci = ["serde"]
 
